@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Rekap Orderan</title>
+
+<style>
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #cfe9ff, #e6f3ff);
+    margin: 0;
+    padding: 30px;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: auto;
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  h2 {
+    text-align: center;
+    color: #3b82f6;
+    margin-bottom: 10px;
+  }
+
+  .total {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #1e40af;
+    margin-bottom: 20px;
+  }
+
+  form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  input {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+  }
+
+  button {
+    grid-column: span 2;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: #60a5fa;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #3b82f6;
+  }
+
+  .excel {
+    background: #34d399;
+    margin-bottom: 15px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th, td {
+    border: 1px solid #e5e7eb;
+    padding: 8px;
+    text-align: center;
+  }
+
+  th {
+    background: #dbeafe;
+    color: #1e3a8a;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>🧾 Rekap Orderan</h2>
+  <div class="total">Total Harga: Rp <span id="totalHarga">0</span></div>
+
+  <form id="orderForm">
+    <input type="date" id="tanggal" required>
+    <input type="time" id="jam" required>
+    <input type="text" id="namaAplikasi" placeholder="Nama Aplikasi" required>
+    <input type="text" id="durasiAplikasi" placeholder="Durasi Aplikasi" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="text" id="profile" placeholder="Profile">
+    <input type="number" id="harga" placeholder="Harga" required>
+    <input type="text" id="cp" placeholder="Contact Person (CP)">
+    <button type="submit">Simpan Orderan</button>
+  </form>
+
+  <button class="excel" onclick="exportSpreadsheet()">📊 Rekap ke Spreadsheet</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Jam</th>
+        <th>Nama Aplikasi</th>
+        <th>Durasi</th>
+        <th>Email</th>
+        <th>Profile</th>
+        <th>Harga</th>
+        <th>CP</th>
+      </tr>
+    </thead>
+    <tbody id="dataTable"></tbody>
+  </table>
+</div>
+
+<script>
+  const form = document.getElementById("orderForm");
+  const table = document.getElementById("dataTable");
+  const totalEl = document.getElementById("totalHarga");
+
+  let dataOrder = JSON.parse(localStorage.getItem("dataOrder")) || [];
+
+  function formatRupiah(angka) {
+    return angka.toLocaleString("id-ID");
+  }
+
+  function hitungTotal() {
+    const total = dataOrder.reduce((sum, d) => sum + Number(d.harga), 0);
+    totalEl.textContent = formatRupiah(total);
+  }
+
+  function renderTable() {
+    table.innerHTML = "";
+    dataOrder.forEach(d => {
+      table.innerHTML += `
+        <tr>
+          <td>${d.tanggal}</td>
+          <td>${d.jam}</td>
+          <td>${d.namaAplikasi}</td>
+          <td>${d.durasiAplikasi}</td>
+          <td>${d.email}</td>
+          <td>${d.profile}</td>
+          <td>Rp ${formatRupiah(d.harga)}</td>
+          <td>${d.cp}</td>
+        </tr>
+      `;
+    });
+    hitungTotal();
+  }
+
+  form.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const data = {
+      tanggal: tanggal.value,
+      jam: jam.value,
+      namaAplikasi: namaAplikasi.value,
+      durasiAplikasi: durasiAplikasi.value,
+      email: email.value,
+      profile: profile.value,
+      harga: Number(harga.value),
+      cp: cp.value
+    };
+
+    dataOrder.push(data);
+    localStorage.setItem("dataOrder", JSON.stringify(dataOrder));
+    form.reset();
+    renderTable();
+  });
+
+  function exportSpreadsheet() {
+    let csv = "Tanggal,Jam,Nama Aplikasi,Durasi Aplikasi,Email,Profile,Harga,CP\n";
+    dataOrder.forEach(d => {
+      csv += `${d.tanggal},${d.jam},${d.namaAplikasi},${d.durasiAplikasi},${d.email},${d.profile},${d.harga},${d.cp}\n`;
+    });
+    csv += `\nTOTAL,,,,,,${dataOrder.reduce((s,d)=>s+Number(d.harga),0)},`;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rekap-orderan.csv";
+    a.click();
+  }
+
+  renderTable();
+</script>
+
+</body>
+</html>
